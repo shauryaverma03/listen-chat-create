@@ -24,11 +24,17 @@ type Message = {
   imageData?: string; // For storing base64 image data
 };
 
+const HEALTHCARE_SYSTEM_PROMPT = `You are a healthcare assistant that provides information about medicine, healthcare, drug usage, and medical conditions. 
+ONLY respond to questions related to healthcare, medicine, medical practices, drug uses, medical equipment, healthcare policy, or other healthcare topics. 
+If asked about non-healthcare topics, politely explain that you only provide information on healthcare-related topics.
+Keep responses concise, accurate, and evidence-based. If you're not sure about something, acknowledge that limitation.
+If a user uploads an image of a medicine, medical condition, or healthcare equipment, describe what you see and provide relevant medical information.`;
+
 const ChatInterface: React.FC<ChatInterfaceProps> = ({ apiKey, apiType }) => {
   const [messages, setMessages] = useState<Message[]>([
     { 
       role: 'system', 
-      content: 'You are a helpful, friendly assistant. Keep responses concise and engaging. If a user uploads an image, describe what you see and respond to any questions about it.',
+      content: HEALTHCARE_SYSTEM_PROMPT,
       timestamp: new Date()
     }
   ]);
@@ -179,8 +185,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ apiKey, apiType }) => {
     e.preventDefault();
     
     const message = inputValue.trim();
-    if (message) {
-      sendMessage(message);
+    if (message || imageData) {
+      sendMessage(message || "Please analyze this image");
     }
   };
 
@@ -190,7 +196,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ apiKey, apiType }) => {
   return (
     <Card className="w-full max-w-md mx-auto h-[600px] flex flex-col overflow-hidden">
       <div className="bg-chatbot-primary text-white p-4 text-center">
-        <h2 className="text-xl font-semibold">AI Chat Assistant</h2>
+        <h2 className="text-xl font-semibold">Healthcare Assistant</h2>
         <p className="text-sm mt-1">
           {apiType === 'gemini' ? 'Powered by Google Gemini AI' : 'Powered by OpenAI'}
         </p>
@@ -200,8 +206,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ apiKey, apiType }) => {
         {displayMessages.length === 0 ? (
           <div className="flex items-center justify-center h-full text-gray-400">
             <p className="text-center">
-              Start a conversation by typing a message or pressing the microphone button.
-              {apiType === 'gemini' && <span className="block mt-2">You can also upload images for analysis!</span>}
+              Start a conversation by asking a healthcare question or uploading a medical image.
             </p>
           </div>
         ) : (
@@ -250,7 +255,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ apiKey, apiType }) => {
           <Input
             value={inputValue}
             onChange={handleInputChange}
-            placeholder={isListening ? 'Listening...' : 'Type a message...'}
+            placeholder={isListening ? 'Listening...' : 'Ask a healthcare question...'}
             className="flex-1"
           />
           
@@ -263,7 +268,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ apiKey, apiType }) => {
             {audioEnabled ? <Volume2 size={18} /> : <VolumeOff size={18} />}
           </Button>
           
-          <Button type="submit" disabled={!inputValue.trim() && !imageData || isLoading}>
+          <Button type="submit" disabled={((!inputValue.trim() && !imageData) || isLoading) && !isListening}>
             <Send size={18} />
           </Button>
         </div>

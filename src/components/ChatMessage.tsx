@@ -29,8 +29,8 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, isUser, timestamp = 
           <div className="mb-2">
             <img 
               src={`data:image/jpeg;base64,${imageData}`} 
-              alt="Uploaded" 
-              className="max-w-full rounded max-h-48 object-contain" 
+              alt="Uploaded medical image" 
+              className="max-w-full rounded max-h-60 object-contain" 
             />
           </div>
         )}

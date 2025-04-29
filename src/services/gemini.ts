@@ -21,7 +21,7 @@ export class GeminiService {
       // Prepare the request content
       const contents = this.formatMessagesForGemini(messages, imageData);
 
-      const response = await fetch('https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent', {
+      const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -103,7 +103,7 @@ export class GeminiService {
   // Special method for Gemini with vision capabilities
   async generateResponseWithImage(text: string, imageBase64: string): Promise<string> {
     try {
-      const response = await fetch('https://generativelanguage.googleapis.com/v1/models/gemini-pro-vision:generateContent', {
+      const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

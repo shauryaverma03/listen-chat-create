@@ -4,24 +4,25 @@ import ChatInterface from '@/components/ChatInterface';
 import APIKeyInput from '@/components/APIKeyInput';
 import { toast } from '@/components/ui/sonner';
 
+// Default Gemini API key
+const DEFAULT_GEMINI_API_KEY = 'AIzaSyARHSVHuHcvQTx_ggY1BlAfQLIbxvOqRd0';
+
 const Index = () => {
-  const [apiKey, setApiKey] = useState<string>('');
+  const [apiKey, setApiKey] = useState<string>(DEFAULT_GEMINI_API_KEY);
   const [apiType, setApiType] = useState<'gemini' | 'openai'>('gemini');
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check for saved API type preference
-    const savedApiType = localStorage.getItem('ai-api-type') as 'gemini' | 'openai' | null;
-    if (savedApiType) {
-      setApiType(savedApiType);
+    // Set the default Gemini API key
+    localStorage.setItem('gemini-api-key', DEFAULT_GEMINI_API_KEY);
+    localStorage.setItem('ai-api-type', 'gemini');
+    
+    // Check for saved API key in localStorage for OpenAI (in case user wants to switch)
+    const savedOpenAIKey = localStorage.getItem('openai-api-key');
+    if (!savedOpenAIKey) {
+      localStorage.setItem('openai-api-key', '');
     }
 
-    // Check for saved API key in localStorage based on the type
-    const keyToCheck = savedApiType || apiType;
-    const savedApiKey = localStorage.getItem(`${keyToCheck}-api-key`);
-    if (savedApiKey) {
-      setApiKey(savedApiKey);
-    }
     setIsLoading(false);
     
     // Check for speech synthesis voices and load them
@@ -43,9 +44,15 @@ const Index = () => {
   };
 
   const resetApiKey = () => {
-    localStorage.removeItem(`${apiType}-api-key`);
-    setApiKey('');
-    toast.success('API key removed');
+    if (apiType === 'gemini') {
+      setApiKey(DEFAULT_GEMINI_API_KEY);
+      localStorage.setItem('gemini-api-key', DEFAULT_GEMINI_API_KEY);
+      toast.success('Reset to default Gemini API key');
+    } else {
+      localStorage.removeItem(`${apiType}-api-key`);
+      setApiKey('');
+      toast.success('API key removed');
+    }
   };
 
   if (isLoading) {
@@ -60,10 +67,10 @@ const Index = () => {
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-8 px-4">
       <div className="container max-w-4xl mx-auto">
         <h1 className="text-3xl md:text-4xl font-bold text-center text-chatbot-primary mb-2">
-          Voice-Enabled AI Assistant
+          Healthcare AI Assistant
         </h1>
         <p className="text-center text-gray-600 mb-8">
-          Chat with AI using text or voice{apiType === 'gemini' && " • Analyze images"}
+          Get answers to your healthcare questions • Ask about medicines and treatments{apiType === 'gemini' && " • Upload medical images for analysis"}
         </p>
 
         {apiKey ? (
@@ -75,7 +82,7 @@ const Index = () => {
                 onClick={resetApiKey}
                 className="text-sm text-gray-500 hover:underline"
               >
-                Reset API Key
+                {apiType === 'gemini' ? 'Reset to Default Gemini Key' : 'Reset API Key'}
               </button>
             </div>
           </div>
