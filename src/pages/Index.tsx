@@ -84,6 +84,13 @@ const Index = () => {
               >
                 {apiType === 'gemini' ? 'Reset to Default Gemini Key' : 'Reset API Key'}
               </button>
+              <span className="mx-2 text-gray-400">|</span>
+              <button
+                onClick={() => setApiKey('')}
+                className="text-sm text-gray-500 hover:underline"
+              >
+                Switch API Provider
+              </button>
             </div>
           </div>
         ) : (

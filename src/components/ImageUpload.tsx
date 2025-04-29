@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { X, Image as ImageIcon } from 'lucide-react';
+import { toast } from '@/components/ui/sonner';
 
 interface ImageUploadProps {
   onImageSelect: (base64Image: string | null) => void;
@@ -20,7 +21,13 @@ const ImageUpload: React.FC<ImageUploadProps> = ({ onImageSelect }) => {
 
     // Validate file is an image
     if (!file.type.startsWith('image/')) {
-      alert('Please select an image file');
+      toast.error('Please select an image file');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image is too large. Please select an image under 5MB.');
       return;
     }
 
@@ -31,6 +38,9 @@ const ImageUpload: React.FC<ImageUploadProps> = ({ onImageSelect }) => {
       const base64String = result.split(',')[1];
       setPreview(result);
       onImageSelect(base64String);
+    };
+    reader.onerror = () => {
+      toast.error('Error reading image file');
     };
     reader.readAsDataURL(file);
   };

@@ -16,10 +16,10 @@ export class GeminiService {
     this.apiKey = apiKey;
   }
 
-  async generateResponse(messages: Message[], imageData?: string): Promise<string> {
+  async generateResponse(messages: Message[]): Promise<string> {
     try {
       // Prepare the request content
-      const contents = this.formatMessagesForGemini(messages, imageData);
+      const contents = this.formatMessagesForGemini(messages);
 
       const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent', {
         method: 'POST',
@@ -58,7 +58,7 @@ export class GeminiService {
   }
 
   // Format messages for Gemini API format
-  private formatMessagesForGemini(messages: Message[], imageData?: string) {
+  private formatMessagesForGemini(messages: Message[]) {
     const formattedContents = [];
     
     for (const message of messages) {
@@ -77,16 +77,6 @@ export class GeminiService {
           inlineData: {
             mimeType: 'image/jpeg',
             data: message.content.data
-          }
-        });
-      }
-      
-      // Add image from parameter if this is the last user message
-      if (imageData && message === messages[messages.length - 1] && message.role === 'user') {
-        parts.push({
-          inlineData: {
-            mimeType: 'image/jpeg',
-            data: imageData
           }
         });
       }

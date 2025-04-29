@@ -197,9 +197,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ apiKey, apiType }) => {
     <Card className="w-full max-w-md mx-auto h-[600px] flex flex-col overflow-hidden">
       <div className="bg-chatbot-primary text-white p-4 text-center">
         <h2 className="text-xl font-semibold">Healthcare Assistant</h2>
-        <p className="text-sm mt-1">
-          {apiType === 'gemini' ? 'Powered by Google Gemini AI' : 'Powered by OpenAI'}
-        </p>
       </div>
       
       <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
@@ -235,11 +232,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ apiKey, apiType }) => {
       </div>
       
       <form onSubmit={handleSubmit} className="p-4 bg-white border-t">
-        {apiType === 'gemini' && (
-          <div className="mb-2">
-            <ImageUpload onImageSelect={handleImageSelect} />
-          </div>
-        )}
+        <div className="mb-2">
+          <ImageUpload onImageSelect={handleImageSelect} />
+        </div>
         
         <div className="flex space-x-2">
           <Button
