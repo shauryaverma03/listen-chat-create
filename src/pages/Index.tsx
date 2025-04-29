@@ -6,11 +6,19 @@ import { toast } from '@/components/ui/sonner';
 
 const Index = () => {
   const [apiKey, setApiKey] = useState<string>('');
+  const [apiType, setApiType] = useState<'gemini' | 'openai'>('gemini');
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check for saved API key in localStorage
-    const savedApiKey = localStorage.getItem('openai-api-key');
+    // Check for saved API type preference
+    const savedApiType = localStorage.getItem('ai-api-type') as 'gemini' | 'openai' | null;
+    if (savedApiType) {
+      setApiType(savedApiType);
+    }
+
+    // Check for saved API key in localStorage based on the type
+    const keyToCheck = savedApiType || apiType;
+    const savedApiKey = localStorage.getItem(`${keyToCheck}-api-key`);
     if (savedApiKey) {
       setApiKey(savedApiKey);
     }
@@ -29,12 +37,13 @@ const Index = () => {
     }
   }, []);
 
-  const handleAPIKeySubmit = (key: string) => {
+  const handleAPIKeySubmit = (key: string, type: 'gemini' | 'openai') => {
     setApiKey(key);
+    setApiType(type);
   };
 
   const resetApiKey = () => {
-    localStorage.removeItem('openai-api-key');
+    localStorage.removeItem(`${apiType}-api-key`);
     setApiKey('');
     toast.success('API key removed');
   };
@@ -54,12 +63,12 @@ const Index = () => {
           Voice-Enabled AI Assistant
         </h1>
         <p className="text-center text-gray-600 mb-8">
-          Chat with AI using text or voice
+          Chat with AI using text or voice{apiType === 'gemini' && " • Analyze images"}
         </p>
 
         {apiKey ? (
           <div className="space-y-6">
-            <ChatInterface apiKey={apiKey} />
+            <ChatInterface apiKey={apiKey} apiType={apiType} />
             
             <div className="text-center">
               <button 

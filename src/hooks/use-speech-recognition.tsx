@@ -10,11 +10,19 @@ interface SpeechRecognitionHook {
   error: string | null;
 }
 
+// Make TypeScript happy by declaring WebkitSpeechRecognition
+declare global {
+  interface Window {
+    SpeechRecognition: any;
+    webkitSpeechRecognition: any;
+  }
+}
+
 export function useSpeechRecognition(): SpeechRecognitionHook {
   const [transcript, setTranscript] = useState('');
   const [isListening, setIsListening] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
+  const [recognition, setRecognition] = useState<any | null>(null);
 
   useEffect(() => {
     if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
@@ -25,16 +33,16 @@ export function useSpeechRecognition(): SpeechRecognitionHook {
       recognitionInstance.interimResults = true;
       recognitionInstance.lang = 'en-US';
 
-      recognitionInstance.onresult = (event) => {
+      recognitionInstance.onresult = (event: any) => {
         const currentTranscript = Array.from(event.results)
-          .map(result => result[0].transcript)
+          .map((result: any) => result[0].transcript)
           .join(' ');
 
         setTranscript(currentTranscript);
       };
 
-      recognitionInstance.onerror = (event) => {
-        setError(event.error);
+      recognitionInstance.onerror = (event: any) => {
+        setError(event.error || 'Speech recognition error');
         setIsListening(false);
       };
 

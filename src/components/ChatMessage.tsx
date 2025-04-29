@@ -6,9 +6,10 @@ interface ChatMessageProps {
   message: string;
   isUser: boolean;
   timestamp?: Date;
+  imageData?: string;
 }
 
-const ChatMessage: React.FC<ChatMessageProps> = ({ message, isUser, timestamp = new Date() }) => {
+const ChatMessage: React.FC<ChatMessageProps> = ({ message, isUser, timestamp = new Date(), imageData }) => {
   return (
     <div
       className={cn(
@@ -24,6 +25,15 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, isUser, timestamp = 
             : "bg-chatbot-assistant rounded-bl-none"
         )}
       >
+        {imageData && (
+          <div className="mb-2">
+            <img 
+              src={`data:image/jpeg;base64,${imageData}`} 
+              alt="Uploaded" 
+              className="max-w-full rounded max-h-48 object-contain" 
+            />
+          </div>
+        )}
         <p className="text-sm sm:text-base">{message}</p>
         <div className={cn(
           "text-xs mt-1 opacity-70",

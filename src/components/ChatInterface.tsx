@@ -6,44 +6,59 @@ import { Card } from '@/components/ui/card';
 import { toast } from '@/components/ui/sonner';
 import { Mic, MicOff, Send, Volume2, VolumeOff } from 'lucide-react';
 import ChatMessage from './ChatMessage';
+import ImageUpload from './ImageUpload';
 import { useSpeechRecognition } from '@/hooks/use-speech-recognition';
 import { useTextToSpeech } from '@/hooks/use-text-to-speech';
-import { OpenAIService, Message } from '@/services/openai';
+import { OpenAIService, Message as OpenAIMessage } from '@/services/openai';
+import { GeminiService, Message as GeminiMessage } from '@/services/gemini';
 
 interface ChatInterfaceProps {
   apiKey: string;
+  apiType: 'gemini' | 'openai';
 }
 
-const ChatInterface: React.FC<ChatInterfaceProps> = ({ apiKey }) => {
+type Message = {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  timestamp: Date;
+  imageData?: string; // For storing base64 image data
+};
+
+const ChatInterface: React.FC<ChatInterfaceProps> = ({ apiKey, apiType }) => {
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'system', content: 'You are a helpful, friendly assistant. Keep responses concise and engaging.' }
+    { 
+      role: 'system', 
+      content: 'You are a helpful, friendly assistant. Keep responses concise and engaging. If a user uploads an image, describe what you see and respond to any questions about it.',
+      timestamp: new Date()
+    }
   ]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [audioEnabled, setAudioEnabled] = useState(true);
+  const [imageData, setImageData] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { transcript, isListening, startListening, stopListening, resetTranscript, error: speechError } = useSpeechRecognition();
   const { speak, stop: stopSpeaking, isSpeaking, error: ttsError } = useTextToSpeech();
-  const [openAIService, setOpenAIService] = useState<OpenAIService | null>(null);
-  const [hasAPIKey, setHasAPIKey] = useState(!!apiKey);
+  const [aiService, setAIService] = useState<OpenAIService | GeminiService | null>(null);
 
-  // Initialize OpenAI service
+  // Initialize AI service
   useEffect(() => {
     if (apiKey) {
-      setOpenAIService(new OpenAIService(apiKey));
-      setHasAPIKey(true);
+      if (apiType === 'gemini') {
+        setAIService(new GeminiService(apiKey));
+      } else {
+        setAIService(new OpenAIService(apiKey));
+      }
     } else {
-      setHasAPIKey(false);
+      setAIService(null);
     }
-  }, [apiKey]);
+  }, [apiKey, apiType]);
 
-  // Speech recognition integration
+  // Speech recognition integration with improved accuracy
   useEffect(() => {
     if (transcript && !isListening) {
       setInputValue(transcript);
-      if (transcript.trim()) {
-        handleSubmit(new Event('submit') as unknown as React.FormEvent);
-      }
+      // Don't auto-submit to allow user to correct any recognition errors
     }
   }, [isListening, transcript]);
 
@@ -82,31 +97,67 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ apiKey }) => {
     }
   };
 
+  const handleImageSelect = (base64Image: string | null) => {
+    setImageData(base64Image);
+  };
+
   const sendMessage = async (userMessage: string) => {
-    if (!openAIService) {
-      toast.error('OpenAI API key is missing');
+    if (!aiService) {
+      toast.error('API key is missing');
       return;
     }
 
     // Add user message to chat
-    const updatedMessages = [
-      ...messages,
-      { role: 'user', content: userMessage }
-    ];
+    const newUserMessage: Message = {
+      role: 'user',
+      content: userMessage,
+      timestamp: new Date(),
+      imageData: imageData || undefined
+    };
+    
+    const updatedMessages = [...messages, newUserMessage];
     setMessages(updatedMessages);
     
-    // Clear input and transcript
+    // Clear input, transcript, and image
     setInputValue('');
     resetTranscript();
     
     // Get AI response
     setIsLoading(true);
     try {
-      const response = await openAIService.generateResponse(updatedMessages);
+      let response: string;
+      
+      if (apiType === 'gemini') {
+        const geminiService = aiService as GeminiService;
+        if (imageData) {
+          // Use vision model if image is attached
+          response = await geminiService.generateResponseWithImage(userMessage, imageData);
+          setImageData(null); // Clear image after sending
+        } else {
+          // Convert our messages to Gemini format
+          const geminiMessages: GeminiMessage[] = updatedMessages.map(msg => ({
+            role: msg.role,
+            content: msg.content
+          }));
+          response = await geminiService.generateResponse(geminiMessages);
+        }
+      } else {
+        // Convert our messages to OpenAI format
+        const openaiMessages: OpenAIMessage[] = updatedMessages.map(msg => ({
+          role: msg.role,
+          content: msg.content
+        }));
+        response = await (aiService as OpenAIService).generateResponse(openaiMessages);
+      }
       
       // Add AI message
-      const newMessages = [...updatedMessages, { role: 'assistant', content: response }];
-      setMessages(newMessages);
+      const newAiMessage: Message = {
+        role: 'assistant',
+        content: response,
+        timestamp: new Date()
+      };
+      
+      setMessages([...updatedMessages, newAiMessage]);
       
       // Speak the response if audio is enabled
       if (audioEnabled) {
@@ -120,6 +171,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ apiKey }) => {
       }
     } finally {
       setIsLoading(false);
+      setImageData(null); // Clear the image data after sending
     }
   };
 
@@ -139,9 +191,9 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ apiKey }) => {
     <Card className="w-full max-w-md mx-auto h-[600px] flex flex-col overflow-hidden">
       <div className="bg-chatbot-primary text-white p-4 text-center">
         <h2 className="text-xl font-semibold">AI Chat Assistant</h2>
-        {!hasAPIKey && (
-          <p className="text-sm mt-1 text-red-200">Please enter your OpenAI API key</p>
-        )}
+        <p className="text-sm mt-1">
+          {apiType === 'gemini' ? 'Powered by Google Gemini AI' : 'Powered by OpenAI'}
+        </p>
       </div>
       
       <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
@@ -149,6 +201,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ apiKey }) => {
           <div className="flex items-center justify-center h-full text-gray-400">
             <p className="text-center">
               Start a conversation by typing a message or pressing the microphone button.
+              {apiType === 'gemini' && <span className="block mt-2">You can also upload images for analysis!</span>}
             </p>
           </div>
         ) : (
@@ -157,7 +210,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ apiKey }) => {
               key={index}
               message={msg.content}
               isUser={msg.role === 'user'}
-              timestamp={new Date()}
+              timestamp={msg.timestamp}
+              imageData={msg.imageData}
             />
           ))
         )}
@@ -176,6 +230,12 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ apiKey }) => {
       </div>
       
       <form onSubmit={handleSubmit} className="p-4 bg-white border-t">
+        {apiType === 'gemini' && (
+          <div className="mb-2">
+            <ImageUpload onImageSelect={handleImageSelect} />
+          </div>
+        )}
+        
         <div className="flex space-x-2">
           <Button
             type="button"
@@ -191,7 +251,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ apiKey }) => {
             value={inputValue}
             onChange={handleInputChange}
             placeholder={isListening ? 'Listening...' : 'Type a message...'}
-            disabled={isListening}
             className="flex-1"
           />
           
@@ -204,7 +263,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ apiKey }) => {
             {audioEnabled ? <Volume2 size={18} /> : <VolumeOff size={18} />}
           </Button>
           
-          <Button type="submit" disabled={!inputValue.trim() || isLoading}>
+          <Button type="submit" disabled={!inputValue.trim() && !imageData || isLoading}>
             <Send size={18} />
           </Button>
         </div>
@@ -212,7 +271,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ apiKey }) => {
         {isListening && (
           <div className="mt-2 text-xs text-center text-gray-500">
             <span className="inline-block w-2 h-2 bg-red-500 rounded-full mr-1 animate-pulse"></span>
-            Listening... (Click the microphone to stop)
+            Listening... (Click the microphone to stop and edit if needed)
           </div>
         )}
       </form>
