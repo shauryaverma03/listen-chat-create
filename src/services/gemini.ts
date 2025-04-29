@@ -1,7 +1,8 @@
 
 export interface Message {
   role: 'user' | 'assistant' | 'system';
-  content: string | ImageContent;
+  content: string;
+  imageData?: string;
 }
 
 interface ImageContent {
@@ -53,30 +54,42 @@ export class GeminiService {
       }
     } catch (error) {
       console.error('Error calling Gemini API:', error);
-      throw error;
+      throw error instanceof Error ? error : new Error('Unknown error occurred');
     }
   }
 
   // Format messages for Gemini API format
   private formatMessagesForGemini(messages: Message[]) {
-    const formattedContents = [];
+    const formattedContents: any[] = [];
+    let systemMessage = '';
     
-    for (const message of messages) {
-      // Skip system messages as Gemini doesn't support them directly
-      if (message.role === 'system') continue;
-      
+    // Extract system message
+    const systemMsgs = messages.filter(msg => msg.role === 'system');
+    if (systemMsgs.length > 0) {
+      systemMessage = systemMsgs[0].content;
+    }
+    
+    // Get non-system messages
+    const nonSystemMessages = messages.filter(msg => msg.role !== 'system');
+    
+    for (let i = 0; i < nonSystemMessages.length; i++) {
+      const message = nonSystemMessages[i];
       const parts = [];
       
-      // Handle text content
-      if (typeof message.content === 'string') {
+      // Add system message to the first user message
+      if (i === 0 && message.role === 'user' && systemMessage) {
+        parts.push({ text: `${systemMessage}\n\nUser: ${message.content}` });
+      } else {
+        // Regular text content
         parts.push({ text: message.content });
-      } 
-      // Handle image content if present
-      else if (message.content.type === 'image') {
+      }
+      
+      // Add image if present in user message
+      if (message.role === 'user' && message.imageData) {
         parts.push({
           inlineData: {
             mimeType: 'image/jpeg',
-            data: message.content.data
+            data: message.imageData
           }
         });
       }
@@ -136,7 +149,7 @@ export class GeminiService {
       }
     } catch (error) {
       console.error('Error calling Gemini Vision API:', error);
-      throw error;
+      throw error instanceof Error ? error : new Error('Unknown error occurred');
     }
   }
 }

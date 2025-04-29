@@ -105,6 +105,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ apiKey, apiType }) => {
 
   const handleImageSelect = (base64Image: string | null) => {
     setImageData(base64Image);
+    console.log("Image selected:", base64Image ? "Image data received" : "No image");
   };
 
   const sendMessage = async (userMessage: string) => {
@@ -137,13 +138,19 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ apiKey, apiType }) => {
         const geminiService = aiService as GeminiService;
         if (imageData) {
           // Use vision model if image is attached
-          response = await geminiService.generateResponseWithImage(userMessage, imageData);
+          console.log("Sending message with image");
+          response = await geminiService.generateResponseWithImage(
+            `${HEALTHCARE_SYSTEM_PROMPT}\n\n${userMessage}`, 
+            imageData
+          );
           setImageData(null); // Clear image after sending
         } else {
           // Convert our messages to Gemini format
+          console.log("Sending message without image");
           const geminiMessages: GeminiMessage[] = updatedMessages.map(msg => ({
             role: msg.role,
-            content: msg.content
+            content: msg.content,
+            imageData: msg.imageData
           }));
           response = await geminiService.generateResponse(geminiMessages);
         }
