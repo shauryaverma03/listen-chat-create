@@ -2,7 +2,7 @@
 export interface Message {
   role: 'user' | 'assistant' | 'system';
   content: string;
-  imageData?: string;
+  imageData?: string; // For storing base64 image data
 }
 
 interface ImageContent {

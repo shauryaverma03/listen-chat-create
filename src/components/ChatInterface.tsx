@@ -140,7 +140,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ apiKey, apiType }) => {
           // Use vision model if image is attached
           console.log("Sending message with image");
           response = await geminiService.generateResponseWithImage(
-            `${HEALTHCARE_SYSTEM_PROMPT}\n\n${userMessage}`, 
+            `${HEALTHCARE_SYSTEM_PROMPT}\n\nUser: ${userMessage}`, 
             imageData
           );
           setImageData(null); // Clear image after sending
